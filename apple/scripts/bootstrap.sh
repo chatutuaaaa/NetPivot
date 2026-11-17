@@ -29,21 +29,38 @@ commit=2fec12a6e1f6e3460b6ee483aa00ad29cddadab1
 if [ ! -d "$repo/.git" ]; then
     git clone https://git.zx2c4.com/wireguard-apple "$repo"
 fi
-# The pinned manifest declares Swift tools 5.3 but uses platform constants
-# introduced in PackageDescription 5.5. Keep the source revision pinned.
+# Apply Xcode compatibility fixes to the pinned WireGuardKit checkout.
+wireguard_header=Sources/WireGuardKitC/WireGuardKitC.h
 wireguard_manifest() {
     git -C "$repo" show "$commit:Package.swift" | sed '1s/swift-tools-version:5\.3/swift-tools-version:5.5/'
+}
+wireguard_c_types() {
+    # Fixed-width C types preserve the layout of the socket structs.
+    git -C "$repo" show "$commit:$wireguard_header" | sed \
+        -e '/^#include "key.h"/i\
+#include <stdint.h>
+' \
+        -e 's/u_int32_t/uint32_t/g' -e 's/u_int16_t/uint16_t/g' -e 's/u_char/uint8_t/g'
 }
 status=$(git -C "$repo" status --porcelain)
 if [ -z "$status" ]; then
     git -C "$repo" checkout --detach "$commit"
-    wireguard_manifest > "$repo/Package.swift"
-elif [ "$status" != ' M Package.swift' ] ||
-     [ "$(git -C "$repo" rev-parse HEAD)" != "$commit" ] ||
-     ! wireguard_manifest | cmp -s - "$repo/Package.swift"; then
-    echo "WireGuard dependency has local changes; review them before updating." >&2
-    exit 1
+else
+    while IFS= read -r change; do
+        case "$change" in
+            ' M Package.swift') wireguard_manifest | cmp -s - "$repo/Package.swift" || break ;;
+            " M $wireguard_header") wireguard_c_types | cmp -s - "$repo/$wireguard_header" || break ;;
+            *) break ;;
+        esac
+        change=
+    done <<< "$status"
+    if [ -n "${change:-}" ] || [ "$(git -C "$repo" rev-parse HEAD)" != "$commit" ]; then
+        echo "WireGuard dependency has local changes; review them before updating." >&2
+        exit 1
+    fi
 fi
+wireguard_manifest > "$repo/Package.swift"
+wireguard_c_types > "$repo/$wireguard_header"
 cat > Config/Local.xcconfig <<EOF
 DEVELOPMENT_TEAM = $team
 NETPIVOT_APP_BUNDLE_ID = $bundle
