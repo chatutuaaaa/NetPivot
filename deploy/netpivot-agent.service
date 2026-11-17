@@ -1,0 +1,20 @@
+[Unit]
+Description=NetPivot WireGuard gateway agent
+BindsTo=wg-quick@netpivot0.service
+After=network-online.target wg-quick@netpivot0.service
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/netpivot/agent.env
+ExecStart=/usr/local/sbin/netpivot-agent
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+CapabilityBoundingSet=CAP_NET_ADMIN
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

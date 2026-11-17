@@ -1,0 +1,9 @@
+/deploy/.env
+/apple/Dependencies/
+/apple/Config/Local.xcconfig
+/apple/Config/*-Info.plist
+/apple/NetPivot.xcodeproj/
+/apple/build/
+*.exe
+*.xcuserstate
+/server/.build/

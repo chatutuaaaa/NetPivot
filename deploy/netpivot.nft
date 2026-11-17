@@ -1,0 +1,22 @@
+table inet netpivot {
+    set users {
+        type ipv4_addr
+        flags timeout
+    }
+    set pairs {
+        type ipv4_addr . ipv4_addr
+        flags timeout
+    }
+    chain forward {
+        type filter hook forward priority -10; policy accept;
+        iifname "netpivot0" oifname "netpivot0" ip saddr . ip daddr @pairs accept
+        iifname "netpivot0" drop
+        oifname "netpivot0" drop
+    }
+    chain input {
+        type filter hook input priority -10; policy accept;
+        iifname "netpivot0" ip saddr @users ip daddr 10.203.0.1 udp dport 41820 limit rate 150/second burst 150 packets accept
+        iifname "netpivot0" ip saddr @users ip daddr 10.203.0.1 icmp type echo-request limit rate 20/second accept
+        iifname "netpivot0" drop
+    }
+}

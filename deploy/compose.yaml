@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: netpivot
+      POSTGRES_USER: netpivot
+      POSTGRES_PASSWORD: ${NETPIVOT_DB_PASSWORD:?Set the database password}
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U netpivot -d netpivot]
+      interval: 3s
+      timeout: 2s
+      retries: 25
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+  api:
+    build:
+      context: ../server
+      dockerfile: ../deploy/Dockerfile
+    environment:
+      NETPIVOT_LISTEN: 0.0.0.0:8080
+      NETPIVOT_DATABASE_URL: postgres://netpivot:${NETPIVOT_DB_PASSWORD}@db:5432/netpivot?sslmode=disable
+      NETPIVOT_GATEWAY_ENDPOINT: ${NETPIVOT_GATEWAY_ENDPOINT:?Set the gateway public endpoint}
+      NETPIVOT_GATEWAY_KEY: ${NETPIVOT_GATEWAY_KEY:?Set the gateway public key}
+      NETPIVOT_ORIGIN: https://${NETPIVOT_DOMAIN:?Set the HTTPS hostname}
+      NETPIVOT_AGENT_TOKEN: ${NETPIVOT_AGENT_TOKEN:?Set the agent token}
+      NETPIVOT_INVITE_SECRET: ${NETPIVOT_INVITE_SECRET:?Set the invitation secret}
+      NETPIVOT_TRUST_PROXY: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+  web:
+    image: caddy:2-alpine
+    environment:
+      NETPIVOT_DOMAIN: ${NETPIVOT_DOMAIN}
+      NETPIVOT_APP_ID: ${NETPIVOT_APP_ID:?Set the signed Apple application identifier}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy:/data
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  caddy:

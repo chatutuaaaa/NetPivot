@@ -1,0 +1,43 @@
+name: iOS Build Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build app and packet tunnel
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Generate Xcode project
+        run: |
+          xcodebuild -version
+          go version
+          brew install xcodegen
+          bash apple/scripts/bootstrap.sh ABCDE12345 com.example.netpivot build.example.com
+
+      - name: Build without signing
+        run: |
+          xcodebuild \
+            -project apple/NetPivot.xcodeproj \
+            -scheme NetPivot \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath apple/build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Verify both binaries
+        run: |
+          app=apple/build/Build/Products/Debug-iphoneos/NetPivot.app
+          test -f "$app/NetPivot"
+          test -f "$app/PlugIns/PacketTunnel.appex/PacketTunnel"

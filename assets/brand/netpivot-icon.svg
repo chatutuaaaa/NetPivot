@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">NetPivot</title>
+  <desc id="desc">Four connected device nodes form the letter N, representing a shared virtual network across locations.</desc>
+  <rect width="1024" height="1024" fill="#102A43"/>
+  <path d="M304 704V320L720 704V320" stroke="#39DCC3" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#F4FAFC">
+    <circle cx="304" cy="704" r="54"/>
+    <circle cx="304" cy="320" r="54"/>
+    <circle cx="720" cy="704" r="54"/>
+    <circle cx="720" cy="320" r="54"/>
+  </g>
+</svg>

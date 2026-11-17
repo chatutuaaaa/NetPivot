@@ -1,0 +1,15 @@
+{$NETPIVOT_DOMAIN} {
+    @agent path /v1/gateway/*
+    respond @agent 404
+
+    handle /.well-known/apple-app-site-association {
+        header Content-Type application/json
+        respond `{"applinks":{"details":[{"appIDs":["{$NETPIVOT_APP_ID}"],"components":[{"/":"/j"}]}]}}` 200
+    }
+
+    handle {
+        reverse_proxy api:8080 {
+            header_up X-NetPivot-Client-IP {remote_host}
+        }
+    }
+}
