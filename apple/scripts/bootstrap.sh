@@ -29,11 +29,21 @@ commit=2fec12a6e1f6e3460b6ee483aa00ad29cddadab1
 if [ ! -d "$repo/.git" ]; then
     git clone https://git.zx2c4.com/wireguard-apple "$repo"
 fi
-if [ -n "$(git -C "$repo" status --porcelain)" ]; then
+# The pinned manifest declares Swift tools 5.3 but uses platform constants
+# introduced in PackageDescription 5.5. Keep the source revision pinned.
+wireguard_manifest() {
+    git -C "$repo" show "$commit:Package.swift" | sed '1s/swift-tools-version:5\.3/swift-tools-version:5.5/'
+}
+status=$(git -C "$repo" status --porcelain)
+if [ -z "$status" ]; then
+    git -C "$repo" checkout --detach "$commit"
+    wireguard_manifest > "$repo/Package.swift"
+elif [ "$status" != ' M Package.swift' ] ||
+     [ "$(git -C "$repo" rev-parse HEAD)" != "$commit" ] ||
+     ! wireguard_manifest | cmp -s - "$repo/Package.swift"; then
     echo "WireGuard dependency has local changes; review them before updating." >&2
     exit 1
 fi
-git -C "$repo" checkout --detach "$commit"
 cat > Config/Local.xcconfig <<EOF
 DEVELOPMENT_TEAM = $team
 NETPIVOT_APP_BUNDLE_ID = $bundle
